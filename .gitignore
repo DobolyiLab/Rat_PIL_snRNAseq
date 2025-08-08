@@ -1,0 +1,11 @@
+.Rhistory
+.Rproj.user/
+.RData
+.Ruserdata
+.Rproj
+renv/
+renv.lock
+data/raw/
+data/processed/
+.DS_Store
+Thumbs.db

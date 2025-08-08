@@ -1,0 +1,17 @@
+samples:
+  - id: R1_Cont
+    path: data/raw/R1_Cont_with_WPRE/outs
+  - id: R2_Affi
+    path: data/raw/R2_Affi_with_WPRE/outs
+  - id: R3_Aggr
+    path: data/raw/R3_Aggr_with_WPRE/outs
+
+qc:
+  min_features: 200
+  max_features: 5000
+  max_percent_mt: 5
+
+integration:
+  npcs: 20
+  dims_umap: 1-20
+  resolution: 0.8
