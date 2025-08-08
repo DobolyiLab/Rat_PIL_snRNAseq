@@ -16,7 +16,6 @@ Tamás Láng, Botond B. Drahos, Dávid Keller, Fanni Dóra, Ingrid Csordás, Viv
 
 - **Raw FASTQ** files and **10x feature–barcode matrices** for this study will be deposited to **NCBI GEO**: **GSEXXXXXX** (to be provided).
 
-- **Processed Seurat objects** (.rds) and analysis snapshots will be archived on **Zenodo**: **10.5281/zenodo.XXXXXXX** (to be provided).
 
 Until accessions are assigned, place local 10x outputs under `data/raw/<sample>/outs/` (see below). These paths are ignored by Git and will not be uploaded.
 
