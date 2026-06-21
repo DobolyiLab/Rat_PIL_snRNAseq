@@ -19,6 +19,7 @@ suppressPackageStartupMessages({
 })
 
 # 1) Subset neurons
+# 1) Subset neuronal clusters from annotated object
 obj <- readRDS("data/processed/05_annotated_all.rds")
  
 # Neuronal clusters identified in step 05: GLU_1-4, GABA, DOPA
@@ -27,25 +28,31 @@ Idents(obj) <- "celltype_detailed"
 neurons <- subset(obj, idents = neuronal_idents)
  
 # Re-normalize and cluster neurons
-# 30 PCs selected to capture finer transcriptional distinctions
+# params$neurons$dims PCs selected to capture finer transcriptional distinctions
 # between closely related neuronal populations (explaining ~70% of variance)
 neurons <- SCTransform(neurons, vst.flavor = "v2",
                        vars.to.regress = "nCount_RNA", verbose = FALSE)
-neurons <- RunPCA(neurons, npcs = 50, verbose = FALSE)
-neurons <- RunUMAP(neurons, dims = 1:30, min.dist = 0.4, spread = 1,
-                   verbose = FALSE)
-neurons <- FindNeighbors(neurons, dims = 1:30, verbose = FALSE)
-neurons <- FindClusters(neurons, resolution = 1.5)
+neurons <- RunPCA(neurons, npcs = params$neurons$npcs, verbose = FALSE)
+neurons <- RunUMAP(neurons,
+                   dims     = 1:params$neurons$dims,
+                   min.dist = params$neurons$min_dist,
+                   spread   = params$neurons$spread,
+                   verbose  = FALSE)
+neurons <- FindNeighbors(neurons, dims = 1:params$neurons$dims, verbose = FALSE)
+neurons <- FindClusters(neurons, resolution = params$neurons$resolution_neurons)
 # → 37 neuronal clusters (0-36)
  
 message("Neuronal clusters: ", length(levels(Idents(neurons))))
  
 p_neurons <- DimPlot(neurons, label = TRUE) +
-  ggtitle("Neuronal subclustering (dims=1:30, res=1.5)") + plot_theme()
+  ggtitle(paste0("Neuronal subclustering (dims=1:",
+                 params$neurons$dims,
+                 ", res=", params$neurons$resolution_neurons, ")")) +
+  plot_theme()
 write_plot(p_neurons, "06_umap_neurons_all", pdf = TRUE)
  
 saveRDS(neurons, "data/processed/06_neurons_all.rds")
-
+ 
 # 2) Per-sample proportions per cluster
 prop_table <- prop.table(
   table(neurons$orig.ident, Idents(neurons)),
@@ -55,10 +62,9 @@ prop_table <- prop.table(
 prop_df <- as.data.frame(prop_table)
 colnames(prop_df) <- c("sample", "cluster", "percent")
 readr::write_csv(prop_df, "data/processed/06_cluster_sample_percent.csv")
-
+ 
 # 3) Identify clusters to EXCLUDE based on sample representation
 #    Rule: exclude if ANY condition <10% AND highest condition >80%
-
 imbalanced_clusters <- prop_df %>%
   group_by(cluster) %>%
   summarise(
@@ -73,18 +79,16 @@ imbalanced_clusters <- prop_df %>%
 message("Imbalanced clusters excluded: ",
         paste(imbalanced_clusters, collapse = ", "))
  
-
 # 4) Identify clusters to EXCLUDE based on adjacent region marker genes
-# Marker genes for adjacent brain regions
 region_markers <- list(
-  SN_dopaminerg    = c("Th", "Slc6a3"),
-  SN_GABAerg       = c("Pax5", "Pou6f2", "Zfpm2"),      # Mendelsohn et al. 2024
-  Cholinerg        = c("Chat", "Slc5a7"),
-  Hippocampal      = c("Satb2", "Neurod6", "Slc17a7", "Prox1"),
-  MG               = c("Synpo2", "Cnksr3", "Prkcd", "Rorb", "Gbx2"),
-  ZI_hypothalamus  = c("Cdh23", "Pax6", "Pde11a"),
-  MGE_int          = c("Lhx6", "Arx", "Dlx1"),
-  Oligodendrocyta  = c("Mog", "Mbp")
+  SN_dopaminerg   = c("Th", "Slc6a3"),
+  SN_GABAerg      = c("Pax5", "Pou6f2", "Zfpm2"),     # Mendelsohn et al. 2024
+  Cholinerg       = c("Chat", "Slc5a7"),
+  Hippocampal     = c("Satb2", "Neurod6", "Slc17a7", "Prox1"),
+  MG              = c("Synpo2", "Cnksr3", "Prkcd"),
+  ZI_hypothalamus = c("Cdh23", "Pax6", "Pde11a"),
+  MGE_int         = c("Lhx6", "Arx", "Dlx1"),
+  Oligodendrocyta = c("Mog", "Mbp")
 )
  
 # Find markers for all clusters
@@ -93,11 +97,11 @@ neurons <- NormalizeData(neurons, verbose = FALSE)
  
 all_markers <- FindAllMarkers(
   neurons,
-  only.pos    = TRUE,
-  min.pct     = 0.2,
+  only.pos        = TRUE,
+  min.pct         = 0.2,
   logfc.threshold = 0.25,
-  test.use    = "wilcox",
-  verbose     = FALSE
+  test.use        = "wilcox",
+  verbose         = FALSE
 )
  
 # Identify clusters expressing regional marker genes
@@ -116,18 +120,17 @@ for (region in names(region_markers)) {
 }
  
 all_marker_excluded <- unique(unlist(marker_excluded))
-
-
+ 
 # 5) Define PIL candidate clusters
 all_clusters <- as.character(levels(Idents(neurons)))
  
 excluded_clusters <- unique(c(imbalanced_clusters, all_marker_excluded))
-PIL_candidates <- setdiff(all_clusters, excluded_clusters)
+PIL_candidates    <- setdiff(all_clusters, excluded_clusters)
  
 message("Excluded clusters: ", paste(sort(excluded_clusters), collapse = ", "))
-message("PIL candidates: ", paste(sort(PIL_candidates), collapse = ", "))
+message("PIL candidates: ",    paste(sort(PIL_candidates),    collapse = ", "))
  
-# Build region assignment table
+# Build region assignment table (Table S3)
 region_assignment <- data.frame(
   Cluster = c(
     "32",
@@ -156,8 +159,7 @@ region_assignment <- data.frame(
 readr::write_csv(region_assignment,
                  "data/processed/06_region_assignment_TableS3.csv")
  
-
-# 6) Subset PIL candidates and re-cluster → subneurons (21 subclusters)
+# 6) Subset PIL candidates and re-cluster → subneurons
 subneurons <- subset(neurons, idents = PIL_candidates)
  
 message("PIL candidate neurons: ", ncol(subneurons))
@@ -165,31 +167,36 @@ message("PIL candidate neurons: ", ncol(subneurons))
 # Re-normalize and re-cluster
 subneurons <- SCTransform(subneurons, vst.flavor = "v2",
                           vars.to.regress = "nCount_RNA", verbose = FALSE)
-subneurons <- RunPCA(subneurons, npcs = 50, verbose = FALSE)
-subneurons <- RunUMAP(subneurons, dims = 1:30, verbose = FALSE)
-subneurons <- FindNeighbors(subneurons, dims = 1:30, verbose = FALSE)
+subneurons <- RunPCA(subneurons, npcs = params$neurons$npcs, verbose = FALSE)
+subneurons <- RunUMAP(subneurons,
+                      dims    = 1:params$neurons$dims,
+                      verbose = FALSE)
+subneurons <- FindNeighbors(subneurons,
+                            dims    = 1:params$neurons$dims,
+                            verbose = FALSE)
 subneurons <- FindClusters(subneurons,
                            graph.name = "SCT_snn",
-                           resolution = 0.7)
+                           resolution = params$neurons$resolution_subneurons)
  
 message("PIL neuronal subclusters: ", length(levels(Idents(subneurons))))
  
 p_sub <- DimPlot(subneurons, label = TRUE) +
-  ggtitle("PIL subneurons (dims=1:30, res=0.7)") + plot_theme()
+  ggtitle(paste0("PIL subneurons (dims=1:", params$neurons$dims,
+                 ", res=", params$neurons$resolution_subneurons, ")")) +
+  plot_theme()
 write_plot(p_sub, "06_umap_subneurons_PIL", pdf = TRUE)
  
 p_sub_sample <- DimPlot(subneurons, group.by = "orig.ident") +
   ggtitle("PIL subneurons by condition") + plot_theme()
 write_plot(p_sub_sample, "06_umap_subneurons_by_sample", pdf = TRUE)
  
-
 # 7) Calb1/Fos analysis
 #    Threshold: minimum 10 nuclei per cluster expressing gene > 0.25
 #    (clusters with fewer cells considered statistically insufficient)
-
 DefaultAssay(subneurons) <- "SCT"
-expr_threshold  <- 0.25
-min_cells       <- 10  # unified threshold for both Calb1 and Fos
+ 
+expr_threshold <- params$calb1_fos$expr_threshold
+min_cells      <- params$calb1_fos$min_cells
  
 calb1_expr <- GetAssayData(subneurons, layer = "data")["Calb1", ]
 fos_expr   <- GetAssayData(subneurons, layer = "data")["Fos", ]
@@ -268,9 +275,9 @@ df_umap <- FetchData(subneurons, vars = c("umap_1", "umap_2"))
 df_umap$cell <- rownames(df_umap)
  
 expr_df <- data.frame(
-  cell   = names(calb1_expr),
-  Calb1  = as.numeric(calb1_expr),
-  Fos    = as.numeric(fos_expr),
+  cell    = names(calb1_expr),
+  Calb1   = as.numeric(calb1_expr),
+  Fos     = as.numeric(fos_expr),
   cluster = clusters
 )
  
@@ -326,7 +333,7 @@ dev.off()
 result_cluster <- result_detailed %>%
   dplyr::group_by(Neuronal_subcluster) %>%
   dplyr::summarise(
-    n_total  = sum(Cell_count),
+    n_total       = sum(Cell_count),
     pct_calb1     = round(100 * sum(Calb1_positive_cells) / n_total, 1),
     pct_fos       = round(100 * sum(cFos_positive_cells)  / n_total, 1),
     pct_calb1_fos = round(100 * sum(Double_positive_cells)/ n_total, 1),
@@ -358,9 +365,9 @@ print(ggplot(result_plot,
              aes(x = factor(Neuronal_subcluster), y = percent, fill = marker)) +
         geom_bar(stat = "identity", position = "dodge",
                  width = 0.7, color = "black", linewidth = 0.3) +
-        scale_fill_manual(values = c("Calb1+"       = "deepskyblue3",
-                                     "Fos+"         = "deeppink2",
-                                     "Calb1+/Fos+"  = "purple3")) +
+        scale_fill_manual(values = c("Calb1+"      = "deepskyblue3",
+                                     "Fos+"        = "deeppink2",
+                                     "Calb1+/Fos+" = "purple3")) +
         labs(x = "Cluster", y = "% of neurons in cluster",
              fill = "Marker",
              title = "Proportion of Calb1+ and Fos+ neurons per cluster") +
@@ -374,9 +381,7 @@ print(ggplot(result_plot,
                                           hjust = 0.5)))
 dev.off()
  
-
 # 8) Neurotransmitter dotplot
-
 tiff("figures/06_dotplot_neurotransmitters.tiff",
      width = 2000, height = 2000, res = 300)
 print(DotPlot(subneurons,
@@ -396,7 +401,6 @@ print(DotPlot(subneurons,
 dev.off()
  
 # 9) Neuropeptide dotplot
-
 neuropep_genes <- c("Adcyap1", "Calca", "Calcb", "Cck", "Crh", "Grp",
                     "Npy", "Nts", "Pdyn", "Penk", "Pnoc", "Tac1", "Vgf")
  
@@ -415,9 +419,7 @@ print(DotPlot(subneurons,
         ggtitle("Neuropeptides"))
 dev.off()
  
-
-# 10) FindAllMarkers for subneurons 
-
+# 10) FindAllMarkers for subneurons
 Idents(subneurons) <- "seurat_clusters"
  
 subneuron_markers <- FindAllMarkers(
@@ -447,10 +449,11 @@ print(DotPlot(subneurons,
         RotatedAxis() + coord_flip())
 dev.off()
  
-
 # Save
 saveRDS(subneurons, "data/processed/06_subneurons.rds")
 writeLines(capture.output(sessionInfo()),
            "data/processed/sessionInfo_06.txt")
+ 
+message("Script 06 complete. Subneurons saved to data/processed/06_subneurons.rds")
  
 message("Script 06 complete. Subneurons saved to data/processed/06_subneurons.rds")
