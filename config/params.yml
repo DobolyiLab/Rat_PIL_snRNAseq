@@ -1,10 +1,10 @@
 samples:
   - id: R1_Cont
-    path: data/raw/R1_Cont_with_WPRE/outs
+    path: data/raw/R1_Cont/outs
   - id: R2_Affi
-    path: data/raw/R2_Affi_with_WPRE/outs
+    path: data/raw/R2_Affi/outs
   - id: R3_Aggr
-    path: data/raw/R3_Aggr_with_WPRE/outs
+    path: data/raw/R3_Aggr/outs
 
 qc:
   min_features: 200
@@ -12,6 +12,18 @@ qc:
   max_percent_mt: 5
 
 integration:
-  npcs: 20
-  dims_umap: 1-20
-  resolution: 0.8
+  npcs: 50
+  dims_umap: 15
+  resolution: 0.5
+
+neurons:
+  npcs: 50
+  dims: 30
+  resolution_neurons: 1.5
+  resolution_subneurons: 0.7
+  min_dist: 0.4
+  spread: 1.0
+
+calb1_fos:
+  expr_threshold: 0.25
+  min_cells: 10
