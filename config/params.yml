@@ -1,19 +1,26 @@
-# Matrices live in one flat folder with per-sample prefixes:
-#   R1_Cont_matrix.mtx, R1_Cont_barcodes.tsv, R1_Cont_features.tsv, ...
-matrix_dir: E:/Rat_PIL/feature_bc_matrix
+# ---------------------------------------------------------------------------
+# Paths. Edit these to point at your own data; everything else can stay as is.
+#
+# Filtered matrices live in ONE flat folder, with a per-sample prefix on each
+# file:  R1_Cont_matrix.mtx.gz, R1_Cont_barcodes.tsv.gz, R1_Cont_features.tsv.gz
+# raw_dir is the cellranger raw_feature_bc_matrix folder for that sample, in the
+# standard layout (barcodes/features/matrix, no prefix). SoupX needs it; leave
+# it empty ("") and step 03 falls back to decontX.
+#
+# Relative paths are resolved from the project root. Absolute paths work too.
+# ---------------------------------------------------------------------------
+matrix_dir: data/raw/feature_bc_matrix
 
 samples:
   - id: R1_Cont
     prefix: R1_Cont
-    raw_dir: E:/Rat_PIL/R1_Cont_with_WPRE/outs/raw_feature_bc_matrix
+    raw_dir: data/raw/R1_Cont/outs/raw_feature_bc_matrix
   - id: R2_Affi
     prefix: R2_Affi
-    raw_dir: E:/Rat_PIL/R2_Affi_with_WPRE/outs/raw_feature_bc_matrix
-  # NOTE: two candidate R3 runs exist (with_tdt and with_WPRE).
-  # Confirm with check_raw_match.R which one the filtered matrix came from.
+    raw_dir: data/raw/R2_Affi/outs/raw_feature_bc_matrix
   - id: R3_Aggr
     prefix: R3_Aggr
-    raw_dir: E:/Rat_PIL/R3_Aggr_with_WPRE/outs/raw_feature_bc_matrix
+    raw_dir: data/raw/R3_Aggr/outs/raw_feature_bc_matrix
 
 ambient:
   method: auto              # auto | soupx | decontx | none

@@ -1,0 +1,47 @@
+Rat_PIL pipeline -- installing this over your project
+=====================================================
+
+Extract into your project root -- the folder you will set as the working
+directory in R -- overwriting when asked.
+
+Contents:  scripts/  scripts/analyses/  config/  README.md  CITATION.cff  .gitignore
+
+1. Your scripts/ folder must end up holding EXACTLY these:
+       00_setup.R
+       01_qc_and_merge.R
+       02_integration_SCT.R
+       03_ambient_removal.R
+       04_doublets_and_recluster.R
+       05_annotation_and_renaming.R
+       06_neuron_subset.R
+       07_cellchat.R
+       analyses/clustered_dotplot.R
+       analyses/oligo_maturation.R
+
+   Delete any of the superseded ones still lying around:
+       old <- c("03_soupx_reclean.R","04_doublets_scDbl.R",
+                "04b_recluster_after_doublets.R","05a_annotation_evidence.R",
+                "05b_clustered_dotplot.R","05c_oligo_maturation.R",
+                "06b_subneuron_filter.R")
+       file.remove(file.path("scripts", old[file.exists(file.path("scripts", old))]))
+       list.files("scripts", recursive = TRUE)   # check what is left
+
+2. utils/plotting.R is NOT in this archive -- yours is untouched, keep it.
+
+3. There are no checkpoints any more. Delete the old ones:
+       file.remove("data/processed/04_doublets_called.rds")
+       file.remove("data/processed/06_neurons_integrated.rds")
+
+4. Edit matrix_dir and the per-sample raw_dir entries at the top of
+   config/params.yml so they point at your data.
+
+5. Final run, in a fresh R session:
+       setwd("<your project root>")
+       source("scripts/04_doublets_and_recluster.R")
+       # inspect data/processed/qc/04_cluster_diagnostics.csv and update the
+       # cell counts in config/clusters_to_drop.csv if the cluster IDs moved
+       source("scripts/05_annotation_and_renaming.R")
+       source("scripts/06_neuron_subset.R")
+       source("scripts/07_cellchat.R")
+
+   Steps 01-03 only need re-running if the raw input or the QC settings change.
