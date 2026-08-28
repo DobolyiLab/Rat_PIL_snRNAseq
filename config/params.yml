@@ -1,10 +1,23 @@
+# Matrices live in one flat folder with per-sample prefixes:
+#   R1_Cont_matrix.mtx, R1_Cont_barcodes.tsv, R1_Cont_features.tsv, ...
+matrix_dir: E:/Rat_PIL/feature_bc_matrix
+
 samples:
   - id: R1_Cont
-    path: data/raw/R1_Cont/outs
+    prefix: R1_Cont
+    raw_dir: E:/Rat_PIL/R1_Cont_with_WPRE/outs/raw_feature_bc_matrix
   - id: R2_Affi
-    path: data/raw/R2_Affi/outs
+    prefix: R2_Affi
+    raw_dir: E:/Rat_PIL/R2_Affi_with_WPRE/outs/raw_feature_bc_matrix
+  # NOTE: two candidate R3 runs exist (with_tdt and with_WPRE).
+  # Confirm with check_raw_match.R which one the filtered matrix came from.
   - id: R3_Aggr
-    path: data/raw/R3_Aggr/outs
+    prefix: R3_Aggr
+    raw_dir: E:/Rat_PIL/R3_Aggr_with_WPRE/outs/raw_feature_bc_matrix
+
+ambient:
+  method: auto              # auto | soupx | decontx | none
+  method_without_raw: decontx   # only used if a raw_dir is missing/invalid
 
 qc:
   min_features: 200
@@ -12,18 +25,81 @@ qc:
   max_percent_mt: 5
 
 integration:
-  npcs: 50
-  dims_umap: 15
-  resolution: 0.5
+  npcs: 20
+  resolution: 0.8
+  nfeatures: 3000
 
-neurons:
-  npcs: 50
-  dims: 30
-  resolution_neurons: 1.5
-  resolution_subneurons: 0.7
-  min_dist: 0.4
-  spread: 1.0
+plots:
+  label_size: 3              # DimPlot cluster label text size (Seurat default: 4)
+  axis_angle: -45            # DotPlot gene-label angle; negative = slopes downward
+  axis_text_size: 7          # DotPlot gene-label font size (pt); lower it for long lists
+  dot_min: 0.05              # DotPlot: no dot drawn below this expressing fraction
+  drop_unexpressed: true     # remove genes that reach dot_min in no cluster at all
 
-calb1_fos:
-  expr_threshold: 0.25
-  min_cells: 10
+neuropeptides:
+  # all         -- every gene in the list that exists in the object
+  # expressed   -- reaches plots$dot_min in at least one cluster
+  # significant -- is a significant positive marker of at least one cluster
+  selection: significant
+  padj: 0.05
+  min_log2fc: 0.5
+  order_by_cluster: true     # order genes by the cluster they mark, for a readable diagonal
+
+recluster:
+  resolution: 0.8            # step 04, after doublet removal; lower it if tiny clusters persist
+
+annotation:
+  # Reclustering in step 05, after the documented cluster exclusion.
+  # These are the values the published figures were produced with.
+  recluster:
+    assay: auto              # auto = "integrated" when present, else "SCT".
+                             # This is what the published analysis used.
+                             # cluster_rename.csv is keyed to the IDs this
+                             # produces: change it and the rename table must be
+                             # regenerated.
+    npcs: 50
+    dims: 15
+    resolution: 0.5
+    min_dist: 0.5
+    seed: 42
+  allow_partial_rename: false  # true = proceed with numeric labels instead of stopping
+  min_cluster_cells: 30        # below this, lower integration$resolution instead
+  mixed_second_min: 25         # second lineage must reach this % to count as mixed
+  mixed_ratio: 0.5             # ...and be at least this fraction of the top score
+
+doublets:
+  seed: 42                     # scDblFinder is stochastic; ~ = unseeded.
+                               # Changing this changes which cells are called
+                               # doublets, and therefore the clustering.
+  dims: 20
+  include_pcs: 20
+  cluster_doublet_pct: 40
+  cluster_ncount_ratio: 1.75
+  cluster_multilineage_pct: 30
+
+subneurons:
+  npcs: 50
+  dims: 20
+  resolution: 0.6
+  neuron_label_regex: "GABA|GLU|DOPA|Neuron"
+  min_neuronal_pct: 50
+  max_glial_pct: 25
+  min_cells_for_integration: 100
+  min_pct_of_sample: 1         # cluster must reach this % of >=1 sample's neurons
+  composition_filter:
+    enabled: true              # drop clusters that are skewed across samples
+    min_sample_pct: 10         # every sample must contribute at least this much
+    max_sample_pct: ~          # optional upper bound; ~ = off (redundant with the
+                               # lower bound when there are three samples)
+    size_adjusted: true        # normalize by each sample's own neuron total first
+  renumber: true               # after dropping clusters, renumber 0..N-1 (no gaps)
+  renumber_order: original     # "original" keeps the existing order; "size" sorts by cell count
+  marker_min_pct: 0.05         # FindAllMarkers on the subneurons
+  marker_logfc: 0.25
+  fos_calb_threshold: 0.25
+  fos_calb_min_cells: 10
+
+cellchat:
+  seed: 42                     # permutation test and NMF are stochastic
+  k_outgoing: 3
+  k_incoming: 4

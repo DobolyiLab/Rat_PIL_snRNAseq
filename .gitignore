@@ -1,11 +1,26 @@
-.Rhistory
+# Data and outputs -- too large for git, and regenerable from the scripts.
+# Deposit these in GEO (raw matrices) and Zenodo (processed objects) instead.
+data/
+figures/
+*.rds
+*.RDS
+*.h5
+*.mtx
+*.mtx.gz
+
+# R session junk
 .Rproj.user/
+.Rhistory
 .RData
 .Ruserdata
-.Rproj
-renv/
-renv.lock
-data/raw/
-data/processed/
+*.Rproj
+
+# renv: keep the lockfile, ignore the library itself
+renv/library/
+renv/local/
+renv/staging/
+
+# OS
 .DS_Store
 Thumbs.db
+desktop.ini

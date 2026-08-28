@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+title: "Rat PIL snRNA-seq analysis pipeline"
+message: "If you use this code, please cite the associated article."
+type: software
+authors:
+  - family-names: ""
+    given-names: ""
+    affiliation: ""
+repository-code: ""
+license: MIT
+abstract: >-
+  Analysis pipeline for single-nucleus RNA sequencing of the rat posterior
+  intralaminar thalamic nucleus: quality control, ambient RNA removal, doublet
+  detection, clustering and annotation, neuronal subclustering, and cell-cell
+  communication inference.
