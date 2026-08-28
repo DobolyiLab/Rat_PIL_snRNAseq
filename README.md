@@ -24,7 +24,7 @@ Three samples are analysed: `R1\_Cont`, `R2\_Affi`, `R3\_Aggr`.
 ## Data
 
 Raw FASTQ files and 10x feature–barcode matrices will be deposited at NCBI GEO:
-**GSEXXXXXX** (accession to be added).
+**GSE305279** (accession to be added).
 
 Until then, place the 10x outputs locally and point `config/params.yml` at them.
 Data directories are listed in `.gitignore` and are never uploaded.
