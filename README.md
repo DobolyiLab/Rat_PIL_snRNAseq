@@ -136,9 +136,7 @@ first divided by its own neuron total, so 33.3% per sample represents
 proportional parity; without this the raw split is confounded by differing
 sample sizes.
 
-With one animal per condition, sample identity is confounded with experimental
-condition, so an excluded cluster cannot be attributed to technical variation
-rather than to a condition-restricted population. Step 06 records the excluded
+With one pooled sequencing library per condition, library identity is completely confounded with experimental condition. Although each library represents nuclei pooled from multiple animals, animal-level biological replication is not retained in the sequencing data. Therefore, condition-specific differences cannot be separated statistically from library-specific effects. Step 06 records the excluded
 clusters' markers in `data/processed/06\_dropped\_clusters\_markers.csv` and saves
 the unfiltered object as `data/processed/06\_neurons\_unfiltered.rds`, so a
 sensitivity analysis can be run by pointing step 07 at that file instead.
