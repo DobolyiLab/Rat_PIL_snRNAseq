@@ -24,13 +24,98 @@ meta <- data.frame(labels = factor(paste0("cluster_", obj$seurat_clusters),
                                    levels = paste0("cluster_", lev)),
                    row.names = colnames(obj))
 
-cellchat <- createCellChat(object = data.input, meta = meta, group.by = "labels")
+# =============================================================================
+# Mouse-to-rat orthologue filtering of the CellChat database
+# =============================================================================
 
-# Rat data against the mouse database: symbols are largely 1:1, but a minority
-# of ligand-receptor pairs will not map. State this in the Methods.
-message("[07] using CellChatDB.mouse for rat data -- orthology is assumed, not verified.")
 data(CellChatDB.mouse)
-cellchat@DB <- subsetDB(CellChatDB.mouse, search = "Secreted Signaling")
+db <- subsetDB(CellChatDB.mouse, search = "Secreted Signaling")
+
+hom_path <- params$cellchat$mgi_homology_path
+stopifnot(!is.null(hom_path) && file.exists(hom_path))
+
+hom <- readr::read_tsv(hom_path, show_col_types = FALSE)
+
+required_cols <- c("Common Organism Name", "DB Class Key", "Symbol")
+stopifnot(all(required_cols %in% names(hom)))
+
+mouse_genes <- hom[
+  hom$`Common Organism Name` == "mouse, laboratory",
+  c("DB Class Key", "Symbol")
+]
+
+rat_genes <- hom[
+  hom$`Common Organism Name` == "rat",
+  c("DB Class Key", "Symbol")
+]
+
+# Mouse genes belonging to a homology class that contains at least one rat gene
+orthologous_mouse_symbols <- unique(
+  mouse_genes$Symbol[
+    mouse_genes$`DB Class Key` %in% rat_genes$`DB Class Key`
+  ]
+)
+
+orthologous_mouse_upper <- toupper(orthologous_mouse_symbols)
+
+# Resolve CellChat ligand/receptor complexes to their constituent genes
+resolve_entity_genes <- function(x, db) {
+  
+  if (is.na(x) || x == "") {
+    return(character(0))
+  }
+  
+  if (x %in% rownames(db$complex)) {
+    
+    genes <- unlist(
+      db$complex[x, , drop = FALSE],
+      use.names = FALSE
+    )
+    
+    genes <- as.character(genes)
+    genes <- genes[!is.na(genes) & genes != ""]
+    
+    return(unique(genes))
+  }
+  
+  as.character(x)
+}
+
+# Retain only entities for which every constituent gene has a rat orthologue
+entity_has_rat_orthologues <- function(x, db) {
+  
+  genes <- resolve_entity_genes(x, db)
+  
+  if (length(genes) == 0) {
+    return(FALSE)
+  }
+  
+  all(toupper(genes) %in% orthologous_mouse_upper)
+}
+
+keep_ligand <- vapply(
+  db$interaction$ligand,
+  entity_has_rat_orthologues,
+  logical(1),
+  db = db
+)
+
+keep_receptor <- vapply(
+  db$interaction$receptor,
+  entity_has_rat_orthologues,
+  logical(1),
+  db = db
+)
+
+keep <- keep_ligand & keep_receptor
+
+db$interaction <- db$interaction[keep, , drop = FALSE]
+
+cellchat@DB <- db
+
+# =============================================================================
+# CellChat inference
+# =============================================================================
 
 cellchat <- subsetData(cellchat)
 cellchat <- identifyOverExpressedGenes(cellchat, thresh.pc = 0.1)
