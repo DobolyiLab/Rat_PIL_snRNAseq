@@ -110,3 +110,5 @@ cellchat:
   seed: 42                     # permutation test and NMF are stochastic
   k_outgoing: 3
   k_incoming: 4
+  mgi_homology_path: data/raw/HOM_AllOrganism.rpt.txt   # download from
+    # https://www.informatics.jax.org/downloads/reports/
