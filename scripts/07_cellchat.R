@@ -24,6 +24,8 @@ meta <- data.frame(labels = factor(paste0("cluster_", obj$seurat_clusters),
                                    levels = paste0("cluster_", lev)),
                    row.names = colnames(obj))
 
+cellchat <- createCellChat(object = data.input, meta = meta, group.by = "labels")
+
 # =============================================================================
 # Mouse-to-rat orthologue filtering of the CellChat database
 # =============================================================================
