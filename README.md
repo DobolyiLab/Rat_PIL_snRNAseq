@@ -34,16 +34,15 @@ scripts/
   Fos_Calb1_quantification.R   -- Fos/Calb1 detection per subcluster and sample
 config/
   paths.example.R              -- copy to paths.R and edit
+  neuropeptide_genes.txt       -- one gene symbol per line
+  markers_used_in_figures.csv  -- one "gene" column
 utils/
-  README.md                    -- what plotting.R needs to provide
+  plotting.R             -- plot_theme() and write_plot()
 ```
 
 ## You need to add
 
 - `config/paths.R` -- copy from `paths.example.R`, fill in your data paths
-- `config/neuropeptide_genes.txt` -- one gene symbol per line
-- `config/markers_used_in_figures.csv` -- one "gene" column
-- `utils/plotting.R` -- see `utils/README.md` for the expected interface
 - `config/cluster_rename.csv` -- `celltype_labeling.R` writes a template on
   its first run; fill it in and re-run
 
