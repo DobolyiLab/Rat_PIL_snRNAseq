@@ -37,7 +37,7 @@ config/
   neuropeptide_genes.txt       -- one gene symbol per line
   markers_used_in_figures.csv  -- one "gene" column
 utils/
-  plotting.R             -- plot_theme() and write_plot()
+  plotting.R                   -- plot_theme() and write_plot()
 ```
 
 ## You need to add
