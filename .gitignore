@@ -1,12 +1,12 @@
-# Data and outputs -- too large for git, and regenerable from the scripts.
-# Deposit these in GEO (raw matrices) and Zenodo (processed objects) instead.
-data/
-figures/
+# Data and outputs -- too large for git, and regenerable from the script.
+outputs/
 *.rds
-*.RDS
 *.h5
 *.mtx
 *.mtx.gz
+
+# Personal path configuration -- keep config/paths.example.R in git instead
+config/paths.R
 
 # R session junk
 .Rproj.user/
@@ -15,12 +15,5 @@ figures/
 .Ruserdata
 *.Rproj
 
-# renv: keep the lockfile, ignore the library itself
-renv/library/
-renv/local/
-renv/staging/
-
-# OS
 .DS_Store
 Thumbs.db
-desktop.ini
